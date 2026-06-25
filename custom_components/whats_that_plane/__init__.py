@@ -4,8 +4,10 @@ import logging
 import asyncio
 import math
 import time
+import aiohttp
 import dpath.util
 from datetime import timedelta
+from dataclasses import dataclass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, CoreState, Event
 from homeassistant.const import EVENT_HOMEASSISTANT_START
@@ -13,6 +15,16 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from FlightRadar24 import FlightRadar24API
 from geopy.distance import geodesic
 from .const import DOMAIN
+
+@dataclass
+class FlightData:
+    id: str
+    latitude: float
+    longitude: float
+    altitude: int
+    heading: int
+    ground_speed: int
+    callsign: str
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
@@ -212,6 +224,57 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
         upper_bound = (direction + half_fov) % 360
         return lower_bound <= bearing <= upper_bound if lower_bound < upper_bound else bearing >= lower_bound or bearing <= upper_bound
 
+    async def _fetch_dump1090_data(self, url: str) -> list[FlightData]:
+        all_flights = []
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=10) as response:
+                    response.raise_for_status()
+                    dump1090_data = await response.json()
+            
+            for ac in dump1090_data.get("aircraft", []):
+                if "lat" not in ac or "lon" not in ac:
+                    continue
+                
+                alt = ac.get("alt_baro", ac.get("alt_geom", 0))
+                if alt == "ground":
+                    alt = 0
+                try:
+                    alt = int(alt)
+                except (ValueError, TypeError):
+                    alt = 0
+                    
+                all_flights.append(FlightData(
+                    id=ac.get("hex", "").strip().lower(),
+                    latitude=ac["lat"],
+                    longitude=ac["lon"],
+                    altitude=alt,
+                    heading=ac.get("track", 0),
+                    ground_speed=ac.get("gs", 0),
+                    callsign=ac.get("flight", "").strip()
+                ))
+        except Exception as e:
+            _LOGGER.warning(f"Could not fetch or parse Dump1090 data: {e}")
+        return all_flights
+
+    async def _get_fr24_details_for_flight(self, flight, data_source, map_by_hex, map_by_callsign):
+        fr24_flight_id = getattr(flight, 'id', None)
+        
+        if data_source == "Dump1090":
+            fr24_flight_id = map_by_hex.get(flight.id)
+            if not fr24_flight_id and getattr(flight, 'callsign', None):
+                fr24_flight_id = map_by_callsign.get(flight.callsign)
+                
+        if fr24_flight_id:
+            try:
+                return await self.hass.async_add_executor_job(self._get_flight_details_scraper, fr24_flight_id)
+            except Exception as e:
+                _LOGGER.warning(f"Could not fetch details for {flight.id} via FR24 id {fr24_flight_id}: {e}")
+                return {}
+        else:
+            _LOGGER.debug(f"Could not find FR24 match for Dump1090 flight {flight.id} ({getattr(flight, 'callsign', '')})")
+            return {}
+
     async def _async_update_data(self):
         try:
             config = self.config
@@ -224,14 +287,32 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
             distance_units = config.get("distance_units", "imperial (miles (mi))")
             altitude_units = config.get("altitude_units", "imperial (feet (ft))")
             speed_units = config.get("speed_units", "imperial (miles per hour (mph))")
-
+            data_source = config.get("data_source", "Flightradar24")
 
             bounds = await self.hass.async_add_executor_job(
                 self.fr_api.get_bounds_by_point, your_latitude, your_longitude, radius_km
             )
-            all_flights = await self.hass.async_add_executor_job(
-                self.fr_api.get_flights, None, bounds
-            )
+
+            fr24_flights = []
+            try:
+                fr24_flights = await self.hass.async_add_executor_job(
+                    self.fr_api.get_flights, None, bounds
+                )
+            except Exception as e:
+                _LOGGER.warning(f"Could not fetch flights from Flightradar24: {e}")
+
+            fr24_flight_map_by_hex = {getattr(f, 'icao_24bit', '').lower(): f.id for f in fr24_flights if getattr(f, 'icao_24bit', None) and getattr(f, 'id', None)}
+            fr24_flight_map_by_callsign = {f.callsign.strip(): f.id for f in fr24_flights if getattr(f, 'callsign', None) and getattr(f, 'id', None)}
+
+            all_flights = []
+            if data_source == "Dump1090":
+                dump1090_url = config.get("dump1090_url")
+                if dump1090_url:
+                    all_flights = await self._fetch_dump1090_data(dump1090_url)
+                else:
+                    _LOGGER.error("Dump1090 data source selected but no URL provided.")
+            else:
+                all_flights = fr24_flights
 
             all_flights_map = {flight.id: flight for flight in all_flights if flight.id}
             currently_visible_ids = set()
@@ -255,11 +336,12 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
 
                     if flight_id not in self.tracked_flights:
                         _LOGGER.debug(f"New flight in FOV: {flight_id}")
-                        try:
-                            flight_details = await self.hass.async_add_executor_job(self._get_flight_details_scraper, flight.id)
-                        except Exception as e:
-                            _LOGGER.warning(f"Could not fetch details for {flight_id}: {e}")
-                            flight_details = {}
+                        flight_details = await self._get_fr24_details_for_flight(
+                            flight, 
+                            data_source, 
+                            fr24_flight_map_by_hex, 
+                            fr24_flight_map_by_callsign
+                        )
                         self.tracked_flights[flight_id] = {"data": flight_details}
                     else:
                         flight_details = self.tracked_flights[flight_id]["data"]
