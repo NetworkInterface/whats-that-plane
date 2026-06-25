@@ -1,0 +1,54 @@
+{
+  "title": "What's that plane?! (Local)",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Visible Flights (Local)",
+        "description": "Set up your local ADS-B plane tracker.",
+        "data": {
+          "location_name": "Location Name (Optional)",
+          "data_source": "Data Source",
+          "dump1090_url": "Dump1090 URL (if applicable)",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "radius_km": "Radius (km)",
+          "facing_direction": "Facing Direction (degrees)",
+          "fov_cone": "Field of View (degrees)",
+          "update_interval": "Update Interval (seconds)",
+          "filter_flight_altitude_ft_minimum": "Minimum Altitude (ft)",
+          "filter_flight_altitude_ft_maximum": "Maximum Altitude (ft)",
+          "hold_flight_data_seconds": "Hold Flight Data (seconds)",
+          "historic_flights_max_count": "Historic Flights Max Count",
+          "distance_units": "Distance Units",
+          "altitude_units": "Altitude Units",
+          "speed_units": "Speed Units"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure Visible Flights (Local)",
+        "data": {
+          "location_name": "Location Name (Optional)",
+          "data_source": "Data Source",
+          "dump1090_url": "Dump1090 URL (if applicable)",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "radius_km": "Radius (km)",
+          "facing_direction": "Facing Direction (degrees)",
+          "fov_cone": "Field of View (degrees)",
+          "update_interval": "Update Interval (seconds)",
+          "filter_flight_altitude_ft_minimum": "Minimum Altitude (ft)",
+          "filter_flight_altitude_ft_maximum": "Maximum Altitude (ft)",
+          "hold_flight_data_seconds": "Hold Flight Data (seconds)",
+          "historic_flights_max_count": "Historic Flights Max Count",
+          "distance_units": "Distance Units",
+          "altitude_units": "Altitude Units",
+          "speed_units": "Speed Units"
+        }
+      }
+    }
+  }
+}
