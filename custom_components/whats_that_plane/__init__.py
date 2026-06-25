@@ -25,6 +25,9 @@ class FlightData:
     heading: int
     ground_speed: int
     callsign: str
+    aircraft_model: str = None
+    aircraft_type: str = None
+    registration: str = None
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
@@ -251,7 +254,10 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
                     altitude=alt,
                     heading=ac.get("track", 0),
                     ground_speed=ac.get("gs", 0),
-                    callsign=ac.get("flight", "").strip()
+                    callsign=ac.get("flight", "").strip(),
+                    aircraft_model=ac.get("desc", "").strip() if ac.get("desc") else None,
+                    aircraft_type=ac.get("t", "").strip() if ac.get("t") else None,
+                    registration=ac.get("r", "").strip() if ac.get("r") else None
                 ))
         except Exception as e:
             _LOGGER.warning(f"Could not fetch or parse Dump1090 data: {e}")
@@ -387,6 +393,18 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
 
                     dpath.util.new(flight_details, 'identification/id', flight.id)
                     dpath.util.new(flight_details, 'identification/callsign', flight.callsign)
+
+                    flight_type = getattr(flight, 'aircraft_type', None) or getattr(flight, 'aircraft_code', None)
+                    if flight_type and not dpath.util.get(flight_details, 'aircraft/model/code', default=None):
+                        dpath.util.new(flight_details, 'aircraft/model/code', flight_type)
+
+                    flight_reg = getattr(flight, 'registration', None)
+                    if flight_reg and not dpath.util.get(flight_details, 'aircraft/registration', default=None):
+                        dpath.util.new(flight_details, 'aircraft/registration', flight_reg)
+
+                    flight_model = getattr(flight, 'aircraft_model', None)
+                    if flight_model and not dpath.util.get(flight_details, 'aircraft/model/text', default=None):
+                        dpath.util.new(flight_details, 'aircraft/model/text', flight_model)
 
                     origin_position = (dpath.util.get(flight_details, ORIGIN_LATITUDE, default=None), dpath.util.get(flight_details, ORIGIN_LONGITUDE, default=None))
                     destination_position = (dpath.util.get(flight_details, DESTINATION_LATITUDE, default=None), dpath.util.get(flight_details, DESTINATION_LONGITUDE, default=None))
