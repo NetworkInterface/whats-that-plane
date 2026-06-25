@@ -1,4 +1,4 @@
-class WhatsThatPlaneMap extends HTMLElement {
+class WhatsThatPlaneLocalMap extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -442,7 +442,7 @@ class WhatsThatPlaneMap extends HTMLElement {
             this._map.invalidateSize();
         });
 
-        const savedLayers = JSON.parse(localStorage.getItem('whats-that-plane-layers')) || {};
+        const savedLayers = JSON.parse(localStorage.getItem('whats-that-plane-local-layers')) || {};
         const getLayerState = (layerName, defaultState) => savedLayers[layerName] === undefined ? defaultState : savedLayers[layerName];
 
         this._locationLayer = L.layerGroup();
@@ -498,9 +498,9 @@ class WhatsThatPlaneMap extends HTMLElement {
   }
 
   _saveLayerState(layerName, isVisible) {
-      const savedLayers = JSON.parse(localStorage.getItem('whats-that-plane-layers')) || {};
+      const savedLayers = JSON.parse(localStorage.getItem('whats-that-plane-local-layers')) || {};
       savedLayers[layerName] = isVisible;
-      localStorage.setItem('whats-that-plane-layers', JSON.stringify(savedLayers));
+      localStorage.setItem('whats-that-plane-local-layers', JSON.stringify(savedLayers));
   }
   
   _hideAllPaths() {
@@ -802,4 +802,4 @@ class WhatsThatPlaneMap extends HTMLElement {
   getCardSize() { return 6; }
 }
 
-customElements.define('whats-that-plane-map', WhatsThatPlaneMap);
+customElements.define('whats-that-plane-local-map', WhatsThatPlaneLocalMap);

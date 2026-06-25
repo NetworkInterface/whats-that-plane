@@ -9,9 +9,9 @@ class WhatsThatPlaneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         if user_input is not None:
             location_name = user_input.get("location_name", "").strip()
-            title = "Visible Flights"
+            title = "Visible Flights (Local)"
             if location_name:
-                title = f"Visible Flights ({location_name})"
+                title = f"Visible Flights (Local) ({location_name})"
             return self.async_create_entry(title=title, data=user_input)
 
         default_latitude = self.hass.config.latitude
@@ -49,9 +49,9 @@ class WhatsThatPlaneOptionsFlow(config_entries.OptionsFlow):
             new_options = {**self.config_entry.options, **user_input}
 
             location_name = new_options.get("location_name", "").strip()
-            title = "Visible Flights"
+            title = "Visible Flights (Local)"
             if location_name:
-                title = f"Visible Flights ({location_name})"
+                title = f"Visible Flights (Local) ({location_name})"
             
             self.hass.config_entries.async_update_entry(
                 self.config_entry, title=title

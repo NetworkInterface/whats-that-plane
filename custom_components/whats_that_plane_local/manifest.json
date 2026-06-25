@@ -1,6 +1,6 @@
 {
     "domain": "whats_that_plane_local",
-    "name": "What's that plane?!",
+    "name": "What's that plane?! (Local)",
     "config_flow": true,
     "documentation": "https://github.com/8bither0/whats-that-plane",
     "issue_tracker": "https://github.com/8bither0/whats-that-plane/issues",

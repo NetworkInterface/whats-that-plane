@@ -106,7 +106,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def _register_resource(event: Event | None = None) -> None:
         await register_lovelace_resource(
-            hass, f"/local/community/{DOMAIN}/whats-that-plane-map.js"
+            hass, f"/local/community/{DOMAIN}/whats-that-plane-local-map.js"
         )
         hass.data.pop("whats_that_plane_local_listener", None)
 
@@ -133,7 +133,7 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if len(hass.config_entries.async_entries(DOMAIN)) == 1:
         _LOGGER.info("Last entry for What's that plane?! being removed, cleaning up resources.")
-        await async_remove_lovelace_resource(hass, f"/local/community/{DOMAIN}/whats-that-plane-map.js")
+        await async_remove_lovelace_resource(hass, f"/local/community/{DOMAIN}/whats-that-plane-local-map.js")
         await hass.async_add_executor_job(remove_frontend_files, hass)
 
     if listener := hass.data.pop("whats_that_plane_local_listener", None):
