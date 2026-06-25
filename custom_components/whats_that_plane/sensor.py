@@ -123,12 +123,16 @@ class WhatsThatPlaneSensor(CoordinatorEntity, SensorEntity):
         destination_country_code = dpath.util.get(flight, DESTINATION_COUNTRY_CODE, default=None)
         origin_2_letter_code = COUNTRY_CODE_MAP.get(origin_country_code, origin_country_code)
         destination_2_letter_code = COUNTRY_CODE_MAP.get(destination_country_code, destination_country_code)
+        fr24_id = flight.get('fr24_id')
+        if not fr24_id and flight_id and len(str(flight_id)) > 6:
+            fr24_id = flight_id
+
         flightradar_link = None
-        if flight_id:
+        if fr24_id:
             if callsign == "Blocked":
-                flightradar_link = f"https://www.flightradar24.com/{flight_id}"
+                flightradar_link = f"https://www.flightradar24.com/{fr24_id}"
             elif callsign:
-                flightradar_link = f"https://www.flightradar24.com/{callsign}/{flight_id}"
+                flightradar_link = f"https://www.flightradar24.com/{callsign}/{fr24_id}"
 
         # Flight time data
         scheduled_departure = dpath.util.get(flight, TIME_SCHEDULED_DEPARTURE, default=None)
