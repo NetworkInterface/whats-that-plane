@@ -391,6 +391,17 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
                     if not flight_details['trail'] or (flight_details['trail'][0]['lat'] != latest_point['lat'] and flight_details['trail'][0]['lng'] != latest_point['lng']):
                         flight_details['trail'].insert(0, latest_point)
 
+                    fr24_id = None
+                    if data_source == "Dump1090":
+                        fr24_id = fr24_flight_map_by_hex.get(flight.id)
+                        if not fr24_id and getattr(flight, 'callsign', None):
+                            fr24_id = fr24_flight_map_by_callsign.get(flight.callsign)
+                    else:
+                        fr24_id = flight.id
+
+                    if fr24_id:
+                        dpath.util.new(flight_details, 'fr24_id', fr24_id)
+
                     dpath.util.new(flight_details, 'identification/id', flight.id)
                     dpath.util.new(flight_details, 'identification/callsign', flight.callsign)
 
