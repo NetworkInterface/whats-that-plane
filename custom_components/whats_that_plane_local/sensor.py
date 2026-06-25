@@ -61,10 +61,10 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([WhatsThatPlaneSensor(coordinator)])
+    async_add_entities([WhatsThatPlaneLocalSensor(coordinator)])
 
 
-class WhatsThatPlaneSensor(CoordinatorEntity, SensorEntity):
+class WhatsThatPlaneLocalSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator):
         super().__init__(coordinator)
         self._attr_name = "Visible Flights"

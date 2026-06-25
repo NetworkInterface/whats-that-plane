@@ -3,7 +3,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from .const import DOMAIN
 
-class WhatsThatPlaneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class WhatsThatPlaneLocalConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
@@ -40,10 +40,10 @@ class WhatsThatPlaneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return WhatsThatPlaneOptionsFlow()
+        return WhatsThatPlaneLocalOptionsFlow()
 
 
-class WhatsThatPlaneOptionsFlow(config_entries.OptionsFlow):
+class WhatsThatPlaneLocalOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         if user_input is not None:
             new_options = {**self.config_entry.options, **user_input}

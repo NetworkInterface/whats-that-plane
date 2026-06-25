@@ -119,7 +119,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})
 
-    coordinator = WhatsThatPlaneCoordinator(hass, entry=entry)
+    coordinator = WhatsThatPlaneLocalCoordinator(hass, entry=entry)
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
@@ -165,7 +165,7 @@ async def async_remove_lovelace_resource(hass: HomeAssistant, url: str):
         else:
             _LOGGER.warning(f"Could not find Lovelace resource to remove: {url}")
 
-class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
+class WhatsThatPlaneLocalCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry | None = None, config: dict | None = None):
         if entry:
             self.config_entry = entry
