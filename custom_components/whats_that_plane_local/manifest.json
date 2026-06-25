@@ -1,5 +1,5 @@
 {
-    "domain": "whats_that_plane",
+    "domain": "whats_that_plane_local",
     "name": "What's that plane?!",
     "config_flow": true,
     "documentation": "https://github.com/8bither0/whats-that-plane",

@@ -108,12 +108,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await register_lovelace_resource(
             hass, f"/local/community/{DOMAIN}/whats-that-plane-map.js"
         )
-        hass.data.pop("whats_that_plane_listener", None)
+        hass.data.pop("whats_that_plane_local_listener", None)
 
     if hass.state is CoreState.running:
         await _register_resource()
     else:
-        hass.data["whats_that_plane_listener"] = hass.bus.async_listen_once(
+        hass.data["whats_that_plane_local_listener"] = hass.bus.async_listen_once(
             EVENT_HOMEASSISTANT_START, _register_resource
         )
 
@@ -136,7 +136,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_remove_lovelace_resource(hass, f"/local/community/{DOMAIN}/whats-that-plane-map.js")
         await hass.async_add_executor_job(remove_frontend_files, hass)
 
-    if listener := hass.data.pop("whats_that_plane_listener", None):
+    if listener := hass.data.pop("whats_that_plane_local_listener", None):
         listener()
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

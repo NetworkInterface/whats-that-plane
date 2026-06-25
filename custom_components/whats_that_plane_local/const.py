@@ -1,4 +1,4 @@
-DOMAIN = "whats_that_plane"
+DOMAIN = "whats_that_plane_local"
 
 COUNTRY_CODE_MAP = {
     "ABW": "AW",  # Aruba

@@ -38,7 +38,7 @@ See [Adding visible flight information card to your dashboard](#Adding-visible-f
 
 ### Manual
 1. Clone this repository to your local machine.
-2. Copy the `custom_components/whats_that_plane` directory to the `custom_components` directory in your Home Assistant file system.
+2. Copy the `custom_components/whats_that_plane_local` directory to the `custom_components` directory in your Home Assistant file system.
 3. Restart Home Assistant.
 4. Now go to your Home Assistant settings and click on `Devices & services`.
 5. Click the `Add Integration` button in the bottom right corner and search for `What's that plane?!`.

@@ -138,7 +138,7 @@ class WhatsThatPlaneMap extends HTMLElement {
         .lds-ring div:nth-child(3) { animation-delay: -0.15s; }
         @keyframes lds-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       </style>
-      <link rel="stylesheet" href="/local/community/whats_that_plane/leaflet.css"/>
+      <link rel="stylesheet" href="/local/community/whats_that_plane_local/leaflet.css"/>
       <div id="loader"><div class="lds-ring"><div></div><div></div><div></div><div></div></div><p>Loading Map...</p></div>
       <div id="map-container">
         <div id="map"></div>
@@ -386,7 +386,7 @@ class WhatsThatPlaneMap extends HTMLElement {
 
     try {
         if (typeof L === 'undefined') {
-            await this._loadScript('/local/community/whats_that_plane/leaflet.js');
+            await this._loadScript('/local/community/whats_that_plane_local/leaflet.js');
         }
 
         if (L.DomUtil.setPosition) {
