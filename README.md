@@ -164,10 +164,13 @@ content: >-
   **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }}
   {% endif %}
 
-  {% set image = flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
+  {% set image = flight.planespotters_photo_link or flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
   {% if image %}
 
   {{ "![]" ~ p1 ~ image ~ p2 }}
+  {% endif %}
+  {% if flight.planespotters_photographer %}
+  <br>*Photo by {{ "[**" ~ flight.planespotters_photographer ~ "**]" ~ p1 ~ flight.planespotters_photo_page ~ p2 }}*
   {% endif %}
 
   ***
@@ -275,10 +278,13 @@ content: >-
   **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }}
   {% endif %}
 
-  {% set image = flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
+  {% set image = flight.planespotters_photo_link or flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
   {% if image %}
 
   {{ "![]" ~ p1 ~ image ~ p2 }}
+  {% endif %}
+  {% if flight.planespotters_photographer %}
+  <br>*Photo by {{ "[**" ~ flight.planespotters_photographer ~ "**]" ~ p1 ~ flight.planespotters_photo_page ~ p2 }}*
   {% endif %}
 
   ***
