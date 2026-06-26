@@ -201,6 +201,10 @@ class WhatsThatPlaneSensor(CoordinatorEntity, SensorEntity):
             "medium_aircraft_image_link": dpath.util.get(flight, MEDIUM_AIRCRAFT_IMAGE, default=None),
             "small_aircraft_image_link": dpath.util.get(flight, SMALL_AIRCRAFT_IMAGE, default=None),
             "thumbnail_aircraft_image_link": dpath.util.get(flight, THUMBNAIL_AIRCRAFT_IMAGE, default=None),
+            
+            "planespotters_photo_link": dpath.util.get(flight, 'planespotters/link', default=None),
+            "planespotters_photographer": dpath.util.get(flight, 'planespotters/photographer', default=None),
+            "planespotters_photo_page": dpath.util.get(flight, 'planespotters/page', default=None),
 
             "latitude": flight.get(LATITUDE),
             "longitude": flight.get(LONGITUDE),

@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, CoreState, Event
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from FlightRadar24 import FlightRadar24API
 from geopy.distance import geodesic
 from .const import DOMAIN
@@ -206,6 +207,37 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
         response.raise_for_status()
         return response.json()
 
+    async def _fetch_planespotters_photo(self, hex_code: str) -> dict:
+        if not hex_code:
+            return {}
+        try:
+            url = f"https://api.planespotters.net/pub/photos/hex/{hex_code.strip().lower()}"
+            headers = {"User-Agent": "WhatsThatPlaneHA/1.0 (https://github.com/8bither0/whats-that-plane)"}
+            session = async_get_clientsession(self.hass)
+            
+            async with session.get(url, headers=headers, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    photos = data.get("photos", [])
+                    if photos:
+                        photo = photos[0]
+                        return {
+                            "link": photo.get("thumbnail_large", {}).get("src"),
+                            "photographer": photo.get("photographer"),
+                            "page": photo.get("link")
+                        }
+                elif response.status == 429:
+                    _LOGGER.warning(f"Planespotters.net API rate limit reached. Photo for {hex_code} skipped.")
+                elif response.status == 403:
+                    _LOGGER.warning(f"Planespotters.net API access forbidden (403). Check your User-Agent or if you are IP blocked.")
+                else:
+                    _LOGGER.debug(f"Planespotters.net API returned unexpected status {response.status} for hex {hex_code}")
+        except asyncio.TimeoutError:
+            _LOGGER.debug(f"Timeout fetching Planespotters photo for {hex_code}")
+        except Exception as e:
+            _LOGGER.debug(f"Failed to fetch Planespotters photo for {hex_code}: {e}")
+        return {}
+
     @property
     def config(self):
         return self._config
@@ -230,10 +262,10 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
     async def _fetch_dump1090_data(self, url: str) -> list[FlightData]:
         all_flights = []
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=10) as response:
-                    response.raise_for_status()
-                    dump1090_data = await response.json()
+            session = async_get_clientsession(self.hass)
+            async with session.get(url, timeout=10) as response:
+                response.raise_for_status()
+                dump1090_data = await response.json()
             
             for ac in dump1090_data.get("aircraft", []):
                 if "lat" not in ac or "lon" not in ac:
@@ -352,6 +384,16 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
                             fr24_flight_map_by_hex, 
                             fr24_flight_map_by_callsign
                         )
+                        
+                        if config.get("use_planespotters_photos", False):
+                            hex_code = getattr(flight, 'icao_24bit', getattr(flight, 'id', None))
+                            if hex_code:
+                                photo_data = await self._fetch_planespotters_photo(hex_code)
+                                if photo_data.get("link"):
+                                    dpath.util.new(flight_details, 'planespotters/link', photo_data["link"])
+                                    dpath.util.new(flight_details, 'planespotters/photographer', photo_data["photographer"])
+                                    dpath.util.new(flight_details, 'planespotters/page', photo_data["page"])
+
                         self.tracked_flights[flight_id] = {"data": flight_details}
                     else:
                         flight_details = self.tracked_flights[flight_id]["data"]
