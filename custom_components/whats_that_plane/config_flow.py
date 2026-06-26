@@ -19,6 +19,8 @@ class WhatsThatPlaneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema({
             vol.Optional("location_name"): str,
+            vol.Required("data_source", default="Flightradar24"): vol.In(["Flightradar24", "Dump1090"]),
+            vol.Optional("dump1090_url", default=""): str,
             vol.Required("latitude", default=default_latitude): vol.All(vol.Coerce(float), vol.Range(min=-90, max=90)),
             vol.Required("longitude", default=default_longitude): vol.All(vol.Coerce(float), vol.Range(min=-180, max=180)),
             vol.Required("radius_km", default=5): vol.Coerce(int),
@@ -59,6 +61,8 @@ class WhatsThatPlaneOptionsFlow(config_entries.OptionsFlow):
         current_config = {**self.config_entry.data, **self.config_entry.options}
         options_schema = vol.Schema({
             vol.Optional("location_name", default=current_config.get("location_name", "")): str,
+            vol.Required("data_source", default=current_config.get("data_source", "Flightradar24")): vol.In(["Flightradar24", "Dump1090"]),
+            vol.Optional("dump1090_url", default=current_config.get("dump1090_url", "")): str,
             vol.Required("latitude", default=current_config.get("latitude")): vol.All(vol.Coerce(float), vol.Range(min=-90, max=90)),
             vol.Required("longitude", default=current_config.get("longitude")): vol.All(vol.Coerce(float), vol.Range(min=-180, max=180)),
             vol.Required("radius_km", default=current_config.get("radius_km")): vol.Coerce(int),
