@@ -239,6 +239,10 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
                 if "lat" not in ac or "lon" not in ac:
                     continue
                 
+                is_mlat = ac.get("type") == "mlat" or "lat" in ac.get("mlat", [])
+                if is_mlat:
+                    continue
+                
                 alt = ac.get("alt_baro", ac.get("alt_geom", 0))
                 if alt == "ground":
                     alt = 0
