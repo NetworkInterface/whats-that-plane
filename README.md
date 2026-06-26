@@ -81,84 +81,100 @@ The template code required to achieve the card shown in the screenshot above can
 
 > If you haven't changed the default name of the sensor, you should simply be able to copy and paste the code below and it should work with no changes required. Otherwise, please find and replace your sensor name before pasting (Default: `sensor.visible_flights`):
 
-```
+```yaml
 type: markdown
 title: What's that plane?!
 content: >-
   {% set flights = state_attr('sensor.visible_flights', 'flights') %}
   {% if flights and flights | count > 0 %}
   {% for flight in flights %}
+  {% set p1 = '(' %}
+  {% set p2 = ')' %}
 
-  {% if flight.callsign == "Blocked" %} 🚫 [**{{ flight.callsign }}**]({{ flight.flightradar_link }})
-  {% if flight.aircraft_model %}
-  **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }}
+  {% set callsign_display = flight.callsign if flight.callsign else flight.flight_id | upper %}
+  {% set link_text = "[**" ~ callsign_display ~ "**]" ~ p1 ~ flight.flightradar_link ~ p2 if flight.flightradar_link else "**" ~ callsign_display ~ "**" %}
+
+  {% if flight.callsign == "Blocked" %}
+  🚫 {{ link_text }}
+  {% else %}
+  ✈️ {% if flight.airline_name %}**{{ flight.airline_name }}** {% endif %}{{ link_text }}
+  {%- if flight.origin_airport_code and flight.destination_airport_code %}
+  (**{{ flight.origin_airport_code }} → {{ flight.destination_airport_code }}**)
+  {%- endif %}
   {% endif %}
-  {%- set image = flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
-  {% if image %}
-    ![]({{ image }})
+
+  {% if flight.altitude is not none or flight.ground_speed is not none %}
+
+  📈 **Altitude:** {{ flight.altitude | default(0, true) | round(0) }} {{ state_attr('sensor.visible_flights', 'config')['altitude_units'].split('(')[-1] | replace(')', '') }} | **Speed:** {{ flight.ground_speed_kts | default(0, true) }} kts ({{ (flight.ground_speed | default(0, true)) | round(0) }} {{ state_attr('sensor.visible_flights', 'config')['speed_units'].split('(')[-1] | replace(')', '') }})
   {% endif %}
-
-  {% elif flight.callsign %}
-  ✈️ **{{ flight.airline_name }} [**{{ flight.callsign }}**]({{ flight.flightradar_link }}) (**{{ flight.origin_airport_code }} → {{ flight.destination_airport_code }}**)**
-
 
   {% if flight.total_distance and flight.total_distance > 0 %}
-    {%- set bar_width = 20 -%}
-    {%- set plane_pos = max(1, (bar_width * flight.progress_percent / 100) | round | int) -%}
-    **{{ flight.origin_country_code_long or flight.origin_country_code }} {{ flight.origin_flag_emoji or flight.origin_airport_code }}** `{{ '─' * (plane_pos - 1) }}✈️{{ '─' * (bar_width - plane_pos) }}` **{{ flight.destination_flag_emoji or flight.destination_airport_code }} {{ flight.destination_country_code_long or flight.destination_country_code }}**
-    📏 **Distance:** *{{ flight.distance_traveled }} of {{ flight.total_distance }} {{ state_attr('sensor.visible_flights', 'config')['distance_units'].split('(')[-1] | replace(')', '') }} ({{ flight.progress_percent }}%)*
-    📈 **Altitude:** {{ flight.altitude | default(0, true) | round(0) }} {{ state_attr('sensor.visible_flights', 'config')['altitude_units'].split('(')[-1] | replace(')', '') }} | **Speed:** {{ flight.ground_speed_kts | default(0, true) }} kts ({{ (flight.ground_speed | default(0, true)) | round(0) }} {{ state_attr('sensor.visible_flights', 'config')['speed_units'].split('(')[-1] | replace(')', '') }})
-    {% if flight.total_flight_time_formatted %} 🕑 **Total Flight Time:** {{ flight.total_flight_time_formatted }}
-    {% endif %}
+
+  {% set bar_width = 20 %}
+  {% set plane_pos = max(1, (bar_width * flight.progress_percent / 100) | round | int) %}
+  **{{ flight.origin_country_code_long or flight.origin_country_code }} {{ flight.origin_flag_emoji or flight.origin_airport_code }}** `{{ '─' * (plane_pos - 1) }}✈️{{ '─' * (bar_width - plane_pos) }}` **{{ flight.destination_flag_emoji or flight.destination_airport_code }} {{ flight.destination_country_code_long or flight.destination_country_code }}**<br>
+  📏 **Distance:** *{{ flight.distance_traveled }} of {{ flight.total_distance }} {{ state_attr('sensor.visible_flights', 'config')['distance_units'].split('(')[-1] | replace(')', '') }} ({{ flight.progress_percent }}%)*
+  {% if flight.total_flight_time_formatted %}<br>🕑 **Total Flight Time:** {{ flight.total_flight_time_formatted }}{% endif %}
   {% endif %}
 
   {% if flight.origin_city or flight.origin_country or flight.destination_city or flight.destination_country or flight.origin_airport_name or flight.destination_airport_name %}
-    🌍 {{ flight.origin_city }}, _**{{ flight.origin_country }}**_ → {{ flight.destination_city }}, _**{{ flight.destination_country }}**_
-    🛂 {{ flight.origin_airport_name | replace('Airport', '') | trim }} → {{ flight.destination_airport_name | replace('Airport', '') | trim }}
+
+  🌍 {{ flight.origin_city | default('?', true) }}, _**{{ flight.origin_country | default('?', true) }}**_ → {{ flight.destination_city | default('?', true) }}, _**{{ flight.destination_country | default('?', true) }}**_<br>
+  🛂 {{ (flight.origin_airport_name | default('', true)) | replace('Airport', '') | trim }} → {{ (flight.destination_airport_name | default('', true)) | replace('Airport', '') | trim }}
   {% endif %}
 
-  {% if flight.scheduled_departure_time_local %} {% set departure_delay = flight.departure_delay_mins if flight.departure_delay_mins is not none else flight.estimated_departure_delay_mins %}
+  {% if flight.scheduled_departure_time_local %}
+  {% set departure_delay = flight.departure_delay_mins if flight.departure_delay_mins is not none else flight.estimated_departure_delay_mins %}
+
   🛫 **Scheduled Departure:** {{ flight.scheduled_departure_time_local }}
   {% if departure_delay is not none %}
   {% if departure_delay > 0 %}
-    - ⚠️ **Delayed: {{ departure_delay }} minutes**
+  - ⚠️ **Delayed: {{ departure_delay }} minutes**
   {% elif departure_delay < 0 %}
-    - ✅ **Early: {{ departure_delay | abs }} minutes**
+  - ✅ **Early: {{ departure_delay | abs }} minutes**
   {% endif %}
   {% endif %}
   {% if flight.real_departure_time_local %}
-    - **Actual Departure:** {{ flight.real_departure_time_local }}
+  - **Actual Departure:** {{ flight.real_departure_time_local }}
   {% elif flight.estimated_departure_time_local %}
-    - **Estimated Departure:** {{ flight.estimated_departure_time_local }}
+  - **Estimated Departure:** {{ flight.estimated_departure_time_local }}
   {% endif %}
   {% endif %}
 
-  {% if flight.scheduled_arrival_time_local %} {% set arrival_delay = flight.arrival_delay_mins if flight.arrival_delay_mins is not none else flight.estimated_arrival_delay_mins %}
+  {% if flight.scheduled_arrival_time_local %}
+  {% set arrival_delay = flight.arrival_delay_mins if flight.arrival_delay_mins is not none else flight.estimated_arrival_delay_mins %}
+
   🛬 **Scheduled Arrival:** {{ flight.scheduled_arrival_time_local }}
   {% if arrival_delay is not none %}
   {% if arrival_delay > 0 %}
-    - ⚠️ **Delayed: {{ arrival_delay }} minutes**
+  - ⚠️ **Delayed: {{ arrival_delay }} minutes**
   {% elif arrival_delay < 0 %}
-    - ✅ **Early: {{ arrival_delay | abs }} minutes**
-  {% endif %} {% endif %} {% if flight.real_arrival_time_local %}
-    - **Actual Arrival:** {{ flight.real_arrival_time_local }}
+  - ✅ **Early: {{ arrival_delay | abs }} minutes**
+  {% endif %}
+  {% endif %}
+  {% if flight.real_arrival_time_local %}
+  - **Actual Arrival:** {{ flight.real_arrival_time_local }}
   {% elif flight.estimated_arrival_time_local %}
-    - **Estimated Arrival:** {{ flight.estimated_arrival_time_local }}
-  {% endif %} {% endif %}
+  - **Estimated Arrival:** {{ flight.estimated_arrival_time_local }}
+  {% endif %}
+  {% endif %}
 
   {% if flight.aircraft_model %}
-    **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }} {% endif %}
-  {%- set image = flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
+
+  **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }}
+  {% endif %}
+
+  {% set image = flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
   {% if image %}
-    ![]({{ image }})
+
+  {{ "![]" ~ p1 ~ image ~ p2 }}
   {% endif %}
 
   ***
   
-  {% endif %}
   {% endfor %}
   {% else %}
-    No visible flights at the moment.
+  No visible flights at the moment.
   {% endif %}
 ```
 
@@ -175,87 +191,101 @@ This section basically clones the existing card but only shows it for historic f
 
 > If you haven't changed the default name of the sensor, you should simply be able to copy and paste the code below and it should work with no changes required. Otherwise, please find and replace your sensor name before pasting (Default: `sensor.visible_flights`):
 
-```
-
-
-  ***
-  
-  # What was that plane?!
-
+```yaml
+type: markdown
+title: What was that plane?!
+content: >-
   {% set historic_flights = state_attr('sensor.visible_flights', 'historic_flights') %}
   {% if historic_flights and historic_flights | count > 0 %}
   {% for flight in historic_flights %}
+  {% set p1 = '(' %}
+  {% set p2 = ')' %}
 
-  {% if flight.callsign == "Blocked" %} 🚫 [**{{ flight.callsign }}**]({{ flight.flightradar_link }})
-  {% if flight.aircraft_model %}
-  **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }}
+  {% set callsign_display = flight.callsign if flight.callsign else flight.flight_id | upper %}
+  {% set link_text = "[**" ~ callsign_display ~ "**]" ~ p1 ~ flight.flightradar_link ~ p2 if flight.flightradar_link else "**" ~ callsign_display ~ "**" %}
+
+  {% if flight.callsign == "Blocked" %}
+  🚫 {{ link_text }}
+  {% else %}
+  ✈️ {% if flight.airline_name %}**{{ flight.airline_name }}** {% endif %}{{ link_text }}
+  {%- if flight.origin_airport_code and flight.destination_airport_code %}
+  (**{{ flight.origin_airport_code }} → {{ flight.destination_airport_code }}**)
+  {%- endif %}
+  {%- if flight.last_seen_time_formatted %} | *{{ flight.last_seen_time_formatted }}*{% endif %}
   {% endif %}
-  {%- set image = flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
-  {% if image %}
-    ![]({{ image }})
+
+  {% if flight.altitude is not none or flight.ground_speed is not none %}
+
+  📈 **Altitude:** {{ flight.altitude | default(0, true) | round(0) }} {{ state_attr('sensor.visible_flights', 'config')['altitude_units'].split('(')[-1] | replace(')', '') }} | **Speed:** {{ flight.ground_speed_kts | default(0, true) }} kts ({{ (flight.ground_speed | default(0, true)) | round(0) }} {{ state_attr('sensor.visible_flights', 'config')['speed_units'].split('(')[-1] | replace(')', '') }})
   {% endif %}
-
-  {% elif flight.callsign %}
-  ✈️ **{{ flight.airline_name }} [**{{ flight.callsign }}**]({{ flight.flightradar_link }}) (**{{ flight.origin_airport_code }} → {{ flight.destination_airport_code }}**)** {% if flight.last_seen_time_formatted %} | *{{ flight.last_seen_time_formatted }}* {% endif %}
-
 
   {% if flight.total_distance and flight.total_distance > 0 %}
-    {%- set bar_width = 20 -%}
-    {%- set plane_pos = max(1, (bar_width * flight.progress_percent / 100) | round | int) -%}
-    **{{ flight.origin_country_code_long or flight.origin_country_code }} {{ flight.origin_flag_emoji or flight.origin_airport_code }}** `{{ '─' * (plane_pos - 1) }}✈️{{ '─' * (bar_width - plane_pos) }}` **{{ flight.destination_flag_emoji or flight.destination_airport_code }} {{ flight.destination_country_code_long or flight.destination_country_code }}**
-    📏 **Distance:** *{{ flight.distance_traveled }} of {{ flight.total_distance }} {{ state_attr('sensor.visible_flights', 'config')['distance_units'].split('(')[-1] | replace(')', '') }} ({{ flight.progress_percent }}%)*
-    📈 **Altitude:** {{ flight.altitude | default(0, true) | round(0) }} {{ state_attr('sensor.visible_flights', 'config')['altitude_units'].split('(')[-1] | replace(')', '') }} | **Speed:** {{ flight.ground_speed_kts | default(0, true) }} kts ({{ (flight.ground_speed | default(0, true)) | round(0) }} {{ state_attr('sensor.visible_flights', 'config')['speed_units'].split('(')[-1] | replace(')', '') }})
-    {% if flight.total_flight_time_formatted %} 🕑 **Total Flight Time:** {{ flight.total_flight_time_formatted }}
-    {% endif %}
+
+  {% set bar_width = 20 %}
+  {% set plane_pos = max(1, (bar_width * flight.progress_percent / 100) | round | int) %}
+  **{{ flight.origin_country_code_long or flight.origin_country_code }} {{ flight.origin_flag_emoji or flight.origin_airport_code }}** `{{ '─' * (plane_pos - 1) }}✈️{{ '─' * (bar_width - plane_pos) }}` **{{ flight.destination_flag_emoji or flight.destination_airport_code }} {{ flight.destination_country_code_long or flight.destination_country_code }}**<br>
+  📏 **Distance:** *{{ flight.distance_traveled }} of {{ flight.total_distance }} {{ state_attr('sensor.visible_flights', 'config')['distance_units'].split('(')[-1] | replace(')', '') }} ({{ flight.progress_percent }}%)*
+  {% if flight.total_flight_time_formatted %}<br>🕑 **Total Flight Time:** {{ flight.total_flight_time_formatted }}{% endif %}
   {% endif %}
 
   {% if flight.origin_city or flight.origin_country or flight.destination_city or flight.destination_country or flight.origin_airport_name or flight.destination_airport_name %}
-    🌍 {{ flight.origin_city }}, _**{{ flight.origin_country }}**_ → {{ flight.destination_city }}, _**{{ flight.destination_country }}**_
-    🛂 {{ flight.origin_airport_name | replace('Airport', '') | trim }} → {{ flight.destination_airport_name | replace('Airport', '') | trim }}
+
+  🌍 {{ flight.origin_city | default('?', true) }}, _**{{ flight.origin_country | default('?', true) }}**_ → {{ flight.destination_city | default('?', true) }}, _**{{ flight.destination_country | default('?', true) }}**_<br>
+  🛂 {{ (flight.origin_airport_name | default('', true)) | replace('Airport', '') | trim }} → {{ (flight.destination_airport_name | default('', true)) | replace('Airport', '') | trim }}
   {% endif %}
 
-  {% if flight.scheduled_departure_time_local %} {% set departure_delay = flight.departure_delay_mins if flight.departure_delay_mins is not none else flight.estimated_departure_delay_mins %}
+  {% if flight.scheduled_departure_time_local %}
+  {% set departure_delay = flight.departure_delay_mins if flight.departure_delay_mins is not none else flight.estimated_departure_delay_mins %}
+
   🛫 **Scheduled Departure:** {{ flight.scheduled_departure_time_local }}
   {% if departure_delay is not none %}
   {% if departure_delay > 0 %}
-    - ⚠️ **Delayed: {{ departure_delay }} minutes**
+  - ⚠️ **Delayed: {{ departure_delay }} minutes**
   {% elif departure_delay < 0 %}
-    - ✅ **Early: {{ departure_delay | abs }} minutes**
+  - ✅ **Early: {{ departure_delay | abs }} minutes**
   {% endif %}
   {% endif %}
   {% if flight.real_departure_time_local %}
-    - **Actual Departure:** {{ flight.real_departure_time_local }}
+  - **Actual Departure:** {{ flight.real_departure_time_local }}
   {% elif flight.estimated_departure_time_local %}
-    - **Estimated Departure:** {{ flight.estimated_departure_time_local }}
+  - **Estimated Departure:** {{ flight.estimated_departure_time_local }}
   {% endif %}
   {% endif %}
 
-  {% if flight.scheduled_arrival_time_local %} {% set arrival_delay = flight.arrival_delay_mins if flight.arrival_delay_mins is not none else flight.estimated_arrival_delay_mins %}
+  {% if flight.scheduled_arrival_time_local %}
+  {% set arrival_delay = flight.arrival_delay_mins if flight.arrival_delay_mins is not none else flight.estimated_arrival_delay_mins %}
+
   🛬 **Scheduled Arrival:** {{ flight.scheduled_arrival_time_local }}
   {% if arrival_delay is not none %}
   {% if arrival_delay > 0 %}
-    - ⚠️ **Delayed: {{ arrival_delay }} minutes**
+  - ⚠️ **Delayed: {{ arrival_delay }} minutes**
   {% elif arrival_delay < 0 %}
-    - ✅ **Early: {{ arrival_delay | abs }} minutes**
-  {% endif %} {% endif %} {% if flight.real_arrival_time_local %}
-    - **Actual Arrival:** {{ flight.real_arrival_time_local }}
+  - ✅ **Early: {{ arrival_delay | abs }} minutes**
+  {% endif %}
+  {% endif %}
+  {% if flight.real_arrival_time_local %}
+  - **Actual Arrival:** {{ flight.real_arrival_time_local }}
   {% elif flight.estimated_arrival_time_local %}
-    - **Estimated Arrival:** {{ flight.estimated_arrival_time_local }}
-  {% endif %} {% endif %}
+  - **Estimated Arrival:** {{ flight.estimated_arrival_time_local }}
+  {% endif %}
+  {% endif %}
 
   {% if flight.aircraft_model %}
-    **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }} {% endif %}
-  {%- set image = flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
+
+  **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }}
+  {% endif %}
+
+  {% set image = flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
   {% if image %}
-    ![]({{ image }})
+
+  {{ "![]" ~ p1 ~ image ~ p2 }}
   {% endif %}
 
   ***
   
-  {% endif %}
   {% endfor %}
   {% else %}
-    No recent flight history.
+  No recent flight history.
   {% endif %}
 ```
 
