@@ -345,6 +345,7 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
 
             fr24_flight_map_by_hex = {getattr(f, 'icao_24bit', '').lower(): f.id for f in fr24_flights if getattr(f, 'icao_24bit', None) and getattr(f, 'id', None)}
             fr24_flight_map_by_callsign = {f.callsign.strip(): f.id for f in fr24_flights if getattr(f, 'callsign', None) and getattr(f, 'id', None)}
+            fr24_flight_obj_map = {f.id: f for f in fr24_flights if getattr(f, 'id', None)}
 
             all_flights = []
             if data_source == "Dump1090":
@@ -463,6 +464,32 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
 
                     if fr24_id:
                         dpath.util.new(flight_details, 'fr24_id', fr24_id)
+                        
+                        fr24_obj = fr24_flight_obj_map.get(fr24_id)
+                        if fr24_obj:
+                            origin_iata = getattr(fr24_obj, 'origin_airport_iata', None)
+                            if origin_iata and origin_iata != 'N/A' and not dpath.util.get(flight_details, 'airport/origin/code/iata', default=None):
+                                dpath.util.new(flight_details, 'airport/origin/code/iata', origin_iata)
+                                
+                            dest_iata = getattr(fr24_obj, 'destination_airport_iata', None)
+                            if dest_iata and dest_iata != 'N/A' and not dpath.util.get(flight_details, 'airport/destination/code/iata', default=None):
+                                dpath.util.new(flight_details, 'airport/destination/code/iata', dest_iata)
+                                
+                            airline = getattr(fr24_obj, 'airline_icao', None) or getattr(fr24_obj, 'airline_iata', None)
+                            if airline and airline != 'N/A' and not dpath.util.get(flight_details, 'airline/name', default=None):
+                                dpath.util.new(flight_details, 'airline/name', airline)
+                                
+                            number = getattr(fr24_obj, 'number', None)
+                            if number and number != 'N/A' and not dpath.util.get(flight_details, 'identification/number/default', default=None):
+                                dpath.util.new(flight_details, 'identification/number/default', number)
+                                
+                            ac_code = getattr(fr24_obj, 'aircraft_code', None)
+                            if ac_code and ac_code != 'N/A' and not dpath.util.get(flight_details, 'aircraft/model/code', default=None):
+                                dpath.util.new(flight_details, 'aircraft/model/code', ac_code)
+                                
+                            reg = getattr(fr24_obj, 'registration', None)
+                            if reg and reg != 'N/A' and not dpath.util.get(flight_details, 'aircraft/registration', default=None):
+                                dpath.util.new(flight_details, 'aircraft/registration', reg)
 
                     dpath.util.new(flight_details, 'identification/id', flight.id)
                     dpath.util.new(flight_details, 'identification/callsign', flight.callsign)
