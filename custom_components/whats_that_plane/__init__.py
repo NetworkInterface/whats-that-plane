@@ -394,9 +394,25 @@ class WhatsThatPlaneCoordinator(DataUpdateCoordinator):
                                     dpath.util.new(flight_details, 'planespotters/photographer', photo_data["photographer"])
                                     dpath.util.new(flight_details, 'planespotters/page', photo_data["page"])
 
-                        self.tracked_flights[flight_id] = {"data": flight_details}
+                        self.tracked_flights[flight_id] = {"data": flight_details, "last_fetch": time.time(), "retries": 0}
                     else:
                         flight_details = self.tracked_flights[flight_id]["data"]
+                        last_fetch = self.tracked_flights[flight_id].get("last_fetch", 0)
+                        retries = self.tracked_flights[flight_id].get("retries", 0)
+                        
+                        is_missing_data = not dpath.util.get(flight_details, 'airline/name', default=None) or not dpath.util.get(flight_details, 'airport/origin/name', default=None)
+                        if is_missing_data and retries < 3 and (time.time() - last_fetch > 50):
+                            _LOGGER.debug(f"Re-fetching FR24 details for {flight_id} due to missing data")
+                            new_details = await self._get_fr24_details_for_flight(
+                                flight, 
+                                data_source, 
+                                fr24_flight_map_by_hex, 
+                                fr24_flight_map_by_callsign
+                            )
+                            self.tracked_flights[flight_id]["last_fetch"] = time.time()
+                            self.tracked_flights[flight_id]["retries"] = retries + 1
+                            if new_details:
+                                flight_details.update(new_details)
 
                     flight_details['latitude'] = flight.latitude
                     flight_details['longitude'] = flight.longitude

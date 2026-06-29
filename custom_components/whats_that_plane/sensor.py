@@ -9,6 +9,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, COUNTRY_CODE_MAP, TIMEZONE_ABBREVIATION_MAP
 
 CALLSIGN = 'identification/callsign'
+FLIGHT_NUMBER = 'identification/number/default'
 FLIGHT_ID = 'identification/id'
 AIRLINE_NAME = 'airline/name'
 AIRCRAFT_MODEL = 'aircraft/model/text'
@@ -118,6 +119,7 @@ class WhatsThatPlaneSensor(CoordinatorEntity, SensorEntity):
 
         # Flight information
         callsign = dpath.util.get(flight, CALLSIGN, default=None) or flight.get('callsign')
+        flight_number = dpath.util.get(flight, FLIGHT_NUMBER, default=None)
         flight_id = dpath.util.get(flight, FLIGHT_ID, default=None)
         origin_country_code = dpath.util.get(flight, ORIGIN_COUNTRY_CODE, default=None)
         destination_country_code = dpath.util.get(flight, DESTINATION_COUNTRY_CODE, default=None)
@@ -191,6 +193,7 @@ class WhatsThatPlaneSensor(CoordinatorEntity, SensorEntity):
 
         return {
             "callsign": callsign,
+            "flight_number": flight_number,
             "flight_id": flight_id,
             "flightradar_link": flightradar_link,
             "airline_name": dpath.util.get(flight, AIRLINE_NAME, default=None),

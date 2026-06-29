@@ -91,7 +91,7 @@ content: >-
   {% set p1 = '(' %}
   {% set p2 = ')' %}
 
-  {% set callsign_display = flight.callsign if flight.callsign else flight.flight_id | upper %}
+  {% set callsign_display = flight.flight_number if flight.flight_number else (flight.callsign if flight.callsign else flight.flight_id | upper) %}
   {% set link_text = "[**" ~ callsign_display ~ "**]" ~ p1 ~ flight.flightradar_link ~ p2 if flight.flightradar_link else "**" ~ callsign_display ~ "**" %}
 
   {% if flight.callsign == "Blocked" %}
@@ -159,9 +159,9 @@ content: >-
   {% endif %}
   {% endif %}
 
-  {% if flight.aircraft_model %}
+  {% if flight.aircraft_model or flight.aircraft_type or flight.aircraft_registration %}
 
-  **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }}
+  {% if flight.aircraft_model %}**{{ flight.aircraft_model }}** {% endif %}{% if flight.aircraft_type %}*({{ flight.aircraft_type }})*{% endif %}{% if flight.aircraft_registration %} | **Registration:** {{ flight.aircraft_registration }}{% endif %}
   {% endif %}
 
   {% set image = flight.planespotters_photo_link or flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
@@ -204,7 +204,7 @@ content: >-
   {% set p1 = '(' %}
   {% set p2 = ')' %}
 
-  {% set callsign_display = flight.callsign if flight.callsign else flight.flight_id | upper %}
+  {% set callsign_display = flight.flight_number if flight.flight_number else (flight.callsign if flight.callsign else flight.flight_id | upper) %}
   {% set link_text = "[**" ~ callsign_display ~ "**]" ~ p1 ~ flight.flightradar_link ~ p2 if flight.flightradar_link else "**" ~ callsign_display ~ "**" %}
 
   {% if flight.callsign == "Blocked" %}
@@ -273,9 +273,9 @@ content: >-
   {% endif %}
   {% endif %}
 
-  {% if flight.aircraft_model %}
+  {% if flight.aircraft_model or flight.aircraft_type or flight.aircraft_registration %}
 
-  **{{ flight.aircraft_model }}** *({{ flight.aircraft_type }})* | **Registration:** {{ flight.aircraft_registration }}
+  {% if flight.aircraft_model %}**{{ flight.aircraft_model }}** {% endif %}{% if flight.aircraft_type %}*({{ flight.aircraft_type }})*{% endif %}{% if flight.aircraft_registration %} | **Registration:** {{ flight.aircraft_registration }}{% endif %}
   {% endif %}
 
   {% set image = flight.planespotters_photo_link or flight.large_aircraft_image_link or flight.medium_aircraft_image_link or flight.small_aircraft_image_link or flight.thumbnail_aircraft_image_link %}
